@@ -1,0 +1,311 @@
+/*
+ * Pagina romantica para a KATLYN
+ *
+ * Como usar no Visual Studio Code (precisa de Java 15 ou superior):
+ *   1. Salve este arquivo como PaginaKatlyn.java
+ *   2. No terminal do VS Code, rode:  java PaginaKatlyn.java
+ *   3. A pagina abre sozinha no Google Chrome.
+ *      Para encerrar, aperte Ctrl+C no terminal.
+ *
+ * Para personalizar: edite o texto da carta e a data de inicio (INICIO)
+ * dentro do HTML logo abaixo.
+ */
+
+import com.sun.net.httpserver.HttpServer;
+
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+
+public class PaginaKatlyn {
+
+    static final int PORTA = 8766;
+
+    static final String HTML = """
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Para Katlyn</title>
+<style>
+  :root {
+    --noite: #150a24;
+    --noite-2: #241238;
+    --rosa: #f0668c;
+    --ouro: #f4d9a0;
+    --texto: #efe6f6;
+    --suave: #b9a6cc;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse at 50% 0%, var(--noite-2), var(--noite) 70%) fixed;
+    color: var(--texto);
+    font-family: Georgia, "Palatino Linotype", Palatino, serif;
+    line-height: 1.7;
+  }
+  #ceu { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  main { position: relative; z-index: 1; }
+  section { max-width: 640px; margin: 0 auto; padding: 14vh 24px; }
+
+  .abertura {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+  }
+  .abertura p { color: var(--suave); font-style: italic; margin: 0 0 8px; font-size: 1.15rem; }
+  h1 {
+    margin: 0; font-weight: 400;
+    font-size: clamp(3.2rem, 15vw, 7.5rem);
+    letter-spacing: .14em; padding-left: .14em;
+    background: linear-gradient(180deg, #fff 0%, var(--ouro) 55%, var(--rosa) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: acender 2.4s ease-out both;
+  }
+  @keyframes acender {
+    from { opacity: 0; letter-spacing: .5em; filter: blur(8px); }
+    to   { opacity: 1; letter-spacing: .14em; filter: blur(0); }
+  }
+  .coracao-grande { font-size: 2rem; color: var(--rosa); margin-top: 24px; }
+  .descer { margin-top: 48px; color: var(--suave); font-size: .95rem; text-decoration: none; }
+  .descer:hover { color: var(--ouro); }
+
+  h2 { font-weight: 400; font-size: 1.9rem; color: var(--ouro); margin: 0 0 24px; }
+  .carta p { font-size: 1.15rem; margin: 0 0 20px; }
+  .assinatura { text-align: right; color: var(--ouro); font-style: italic; }
+
+  .tempo { text-align: center; }
+  .contador { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+  .contador div {
+    min-width: 84px; padding: 16px 10px;
+    border: 1px solid rgba(244, 217, 160, .35); border-radius: 14px;
+  }
+  .contador b { display: block; font-size: 2rem; font-weight: 400; color: #fff; font-variant-numeric: tabular-nums; }
+  .contador span { color: var(--suave); font-size: .9rem; }
+
+  .motivo-box { text-align: center; }
+  #motivo {
+    min-height: 5.5em; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-style: italic; margin: 0 0 24px; padding: 0 8px;
+  }
+  button {
+    font: inherit; font-size: 1.05rem; color: var(--noite);
+    background: linear-gradient(135deg, var(--ouro), var(--rosa));
+    border: 0; border-radius: 999px; padding: 14px 30px; cursor: pointer;
+  }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  button:active { transform: scale(.97); }
+
+  .final { text-align: center; padding-bottom: 22vh; }
+  .final p { font-size: 1.6rem; color: var(--ouro); margin: 0; }
+  .final small { color: var(--suave); display: block; margin-top: 12px; }
+
+  .flutua {
+    position: fixed; z-index: 5; pointer-events: none; color: var(--rosa);
+    animation: subir 2.6s ease-out forwards;
+  }
+  @keyframes subir {
+    from { transform: translateY(0) scale(.6); opacity: 1; }
+    to   { transform: translateY(-160px) scale(1.4); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    h1 { animation: none; }
+    .flutua { animation-duration: .01s; }
+  }
+</style>
+</head>
+<body>
+<canvas id="ceu" aria-hidden="true"></canvas>
+
+<main>
+  <section class="abertura">
+    <p>para o amor da minha vida</p>
+    <h1>KATLYN</h1>
+    <div class="coracao-grande" aria-hidden="true">♥</div>
+    <a class="descer" href="#carta">ler minha carta</a>
+  </section>
+
+  <section class="carta" id="carta">
+    <h2>Uma carta para você</h2>
+    <!-- EDITE O TEXTO ABAIXO COM AS SUAS PALAVRAS -->
+    <p>Katlyn, meu amor, existem palavras que eu guardo só para você, e hoje eu quis colocá-las aqui, onde você possa voltar sempre que quiser.</p>
+    <p>Você transformou os meus dias comuns em lembranças que eu quero guardar para sempre. Ao seu lado, até o silêncio é bom, e qualquer lugar vira casa.</p>
+    <p>Obrigado por cuidar de mim, por rir comigo e por escolher construir a vida ao meu lado. Se eu pudesse escolher de novo, escolheria você, em todas as vezes.</p>
+    <p class="assinatura">Com todo o meu amor, seu marido.</p>
+  </section>
+
+  <section class="tempo">
+    <h2>Nosso tempo juntos</h2>
+    <div class="contador" id="contador" aria-live="off"></div>
+  </section>
+
+  <section class="motivo-box">
+    <h2>Motivos para te amar</h2>
+    <p id="motivo">Toque no botão e descubra um motivo.</p>
+    <button id="botao" type="button">Mostrar um motivo</button>
+  </section>
+
+  <section class="final">
+    <p>Eu te amo, Katlyn.</p>
+    <small>Toque em qualquer lugar da tela para espalhar corações.</small>
+  </section>
+</main>
+
+<script>
+  // ===== EDITE AQUI =====
+  // Data em que vocês começaram a história: 2 anos e 4 meses atrás (16/06/2024).
+  // Formato: (ano, mês, dia, hora, minuto, segundo). Atenção: o mês vai de 0 a 11 (junho = 5).
+  const INICIO = new Date(2024, 5, 16, 0, 0, 0);
+
+  const MOTIVOS = [
+    "Pelo seu sorriso, que muda o meu dia inteiro.",
+    "Pela forma como você cuida de quem ama.",
+    "Porque com você eu sou a melhor versão de mim.",
+    "Pela sua força, mesmo quando você não percebe.",
+    "Porque o seu abraço é o meu lugar favorito.",
+    "Pelo jeito único que você tem de me fazer rir.",
+    "Porque você faz o simples ficar especial.",
+    "Pela paciência e pelo carinho de todos os dias.",
+    "Porque amar você é a coisa mais fácil que já fiz.",
+    "Simplesmente por ser você, Katlyn."
+  ];
+  // ======================
+
+  // Céu estrelado (único movimento automático da página)
+  const tela = document.getElementById("ceu");
+  const ctx = tela.getContext("2d");
+  let estrelas = [];
+  const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function ajustar() {
+    tela.width = innerWidth; tela.height = innerHeight;
+    const n = Math.floor((innerWidth * innerHeight) / 9000);
+    estrelas = Array.from({ length: n }, () => ({
+      x: Math.random() * tela.width,
+      y: Math.random() * tela.height,
+      r: Math.random() * 1.4 + .3,
+      f: Math.random() * Math.PI * 2,
+      v: Math.random() * .02 + .005
+    }));
+    desenhar(0);
+  }
+  function desenhar(t) {
+    ctx.clearRect(0, 0, tela.width, tela.height);
+    for (const e of estrelas) {
+      const brilho = reduzir ? .8 : .45 + .55 * Math.sin(e.f + t * e.v);
+      ctx.globalAlpha = Math.max(.1, brilho);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+    }
+    if (!reduzir) requestAnimationFrame(desenhar);
+  }
+  addEventListener("resize", ajustar);
+  ajustar();
+
+  // Contador de tempo juntos
+  const caixa = document.getElementById("contador");
+  function atualizar() {
+    const agora = new Date();
+    let anos = agora.getFullYear() - INICIO.getFullYear();
+    let meses = agora.getMonth() - INICIO.getMonth();
+    let dias = agora.getDate() - INICIO.getDate();
+    if (dias < 0) { meses--; dias += new Date(agora.getFullYear(), agora.getMonth(), 0).getDate(); }
+    if (meses < 0) { anos--; meses += 12; }
+    const total = Math.max(0, Math.floor((agora - INICIO) / 1000));
+    const h = Math.floor(total / 3600) % 24, m = Math.floor(total / 60) % 60, s = total % 60;
+    const item = (v, nome) => `<div><b>${v}</b><span>${nome}</span></div>`;
+    caixa.innerHTML = item(anos, "anos") + item(meses, "meses") + item(dias, "dias")
+                    + item(h, "horas") + item(m, "min") + item(s, "seg");
+  }
+  atualizar(); setInterval(atualizar, 1000);
+
+  // Motivos
+  let ultimo = -1;
+  document.getElementById("botao").addEventListener("click", e => {
+    e.stopPropagation();
+    let i;
+    do { i = Math.floor(Math.random() * MOTIVOS.length); } while (i === ultimo && MOTIVOS.length > 1);
+    ultimo = i;
+    document.getElementById("motivo").textContent = MOTIVOS[i];
+    coracoes(e.clientX, e.clientY, 6);
+  });
+
+  // Corações ao toque
+  function coracoes(x, y, n) {
+    for (let k = 0; k < n; k++) {
+      const c = document.createElement("span");
+      c.className = "flutua";
+      c.textContent = "♥";
+      c.style.left = (x + (Math.random() * 80 - 40)) + "px";
+      c.style.top = (y + (Math.random() * 30 - 15)) + "px";
+      c.style.fontSize = (14 + Math.random() * 22) + "px";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2700);
+    }
+  }
+  document.addEventListener("click", e => coracoes(e.clientX, e.clientY, 4));
+</script>
+</body>
+</html>
+""";
+
+    public static void main(String[] args) throws Exception {
+        HttpServer servidor = HttpServer.create(
+                new InetSocketAddress(InetAddress.getLoopbackAddress(), PORTA), 0);
+
+        servidor.createContext("/", troca -> {
+            byte[] corpo = HTML.getBytes(StandardCharsets.UTF_8);
+            troca.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
+            troca.sendResponseHeaders(200, corpo.length);
+            try (OutputStream saida = troca.getResponseBody()) {
+                saida.write(corpo);
+            }
+        });
+
+        servidor.start();
+        String url = "http://127.0.0.1:" + PORTA;
+        System.out.println("Pagina rodando em " + url);
+        System.out.println("Aperte Ctrl+C para encerrar.");
+        abrirNoChrome(url);
+    }
+
+    static void abrirNoChrome(String url) {
+        String localAppData = System.getenv("LOCALAPPDATA");
+        String[] caminhos = {
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            localAppData == null ? "" : localAppData + "\\Google\\Chrome\\Application\\chrome.exe",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium"
+        };
+
+        for (String caminho : caminhos) {
+            if (!caminho.isEmpty() && new File(caminho).exists()) {
+                try {
+                    new ProcessBuilder(caminho, url).start();
+                    return;
+                } catch (IOException e) {
+                    // tenta o proximo caminho
+                }
+            }
+        }
+
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(url));
+                return;
+            }
+        } catch (Exception e) {
+            // cai na mensagem abaixo
+        }
+        System.out.println("Nao consegui abrir o navegador. Abra manualmente: " + url);
+    }
+}
